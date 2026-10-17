@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UltimaThule Amulet crafting</title>
+    <style>
+        :root {
+            --bg: #0c0214; --panel: #160a22; --input: #211332; --purple: #462568; --neon: #e040fb;
+            --text: #fff; --text-m: #bda8d1; --blue: #00e5ff; --c-or: #ff9100; --c-gr: #b0bec5; --c-yl: #ffd600;
+        }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 460px; background: var(--panel); border-radius: 16px; padding: 20px; box-shadow: 0 0 20px rgba(224,64,251,0.25); border: 2px solid var(--neon); box-sizing: border-box; }
+        .main-title { text-align: center; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 20px; color: #fff; text-shadow: 0 0 6px rgba(224,64,251,0.6), 0 0 12px rgba(224,64,251,0.3); border-bottom: 1px solid rgba(70,37,104,0.6); padding-bottom: 12px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--purple); padding-bottom: 10px; }
+        .tab-btn { flex: 1; padding: 10px; background: var(--input); border: 1px solid var(--purple); color: var(--text-m); font-weight: bold; cursor: pointer; border-radius: 8px; text-align: center; font-size: 13px; border: 1px solid var(--purple); }
+        .tab-btn.active { color: #fff; background: #311b4e; border-color: var(--neon); box-shadow: 0 0 10px rgba(224,64,251,0.4); }
+        .tab-content { display: none; } .tab-content.active { display: block; }
+        .section-title { display: flex; align-items: center; font-size: 14px; font-weight: 600; margin: 15px 0 8px 0; gap: 6px; }
+        .row-group { display: flex; gap: 10px; margin-bottom: 12px; position: relative; }
+        .input-wrapper { flex: 3; position: relative; } .amount-wrapper { flex: 1.1; }
+        input[type="number"] { width: 100%; padding: 10px; background: var(--input); border: 2px solid var(--purple); border-radius: 8px; color: #fff; font-weight: bold; box-sizing: border-box; outline: none; transition: border-color 0.3s, box-shadow 0.3s; font-size: 13px; height: 42px; }
+        @media (max-width: 420px) { .main-title { font-size: 13px; } }
+        .info-card { background-color: rgba(12,2,20,0.6); border: 1px solid var(--purple); border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+        .info-title { font-size: 13px; color: #fff; margin-bottom: 4px; }
+        .info-value { font-size: 24px; font-weight: 800; color: var(--blue); text-shadow: 0 0 8px rgba(0,229,255,0.3); }
+        .info-value.materials-total { color: var(--c-yl); text-shadow: 0 0 8px rgba(255,214,0,0.3); }
+        .info-value.error { color: #ff5252; font-size: 15px; text-shadow: none; }
+        .info-sub { font-size: 12px; color: var(--c-or); margin-top: 2px; font-weight: bold; }
+        .footer { text-align: center; font-size: 11px; color: var(--text-m); margin-top: 20px; line-height: 1.5; }
+        .footer-highlight { color: var(--c-yl); font-weight: bold; } .footer-project { color: #00e676; font-weight: bold; }
+        
+        /* Стили кастомного выпадающего списка */
+        .custom-select-container { width: 100%; position: relative; }
+        .select-trigger { width: 100%; padding: 10px; background: var(--input); border: 2px solid var(--purple); border-radius: 8px; color: #bda8d1; font-weight: bold; box-sizing: border-box; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; align-items: center; height: 42px; transition: border-color 0.3s, box-shadow 0.3s; }
+        .select-trigger::after { content: '▼'; font-size: 9px; color: var(--text-m); margin-left: 8px; transition: transform 0.2s; }
+        .custom-select-container.open .select-trigger::after { transform: rotate(180deg); }
+        .select-options-dropdown { display: none; position: absolute; top: 46px; left: 0; width: 100%; background: #1c0e30; border: 2px solid var(--purple); border-radius: 8px; z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,0.5); max-height: 260px; overflow-y: auto; box-sizing: border-box; padding: 4px; }
+        .custom-select-container.open .select-options-dropdown { display: block; }
+        .custom-option { padding: 10px; cursor: pointer; font-weight: bold; font-size: 13px; border-radius: 6px; transition: background 0.2s; color: #fff; }
+        .custom-option:hover { background: rgba(70,37,104,0.4); }
+        
+        /* Цветовые маркеры текста вариантов */
+        .color-none { color: #bda8d1 !important; }
+        .color-orange { color: var(--c-or) !important; }
+        .color-grey { color: var(--c-gr) !important; }
+        .color-yellow { color: var(--c-yl) !important; }
+        .color-purple { color: var(--neon) !important; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="main-title">🧿 Калькулятор для Крафта амулетов.</div>
+    <div class="tabs">
+        <button class="tab-btn active" id="btn1" onclick="switchTab(1)">Амулеты из колец.</button>
+        <button class="tab-btn" id="btn2" onclick="switchTab(2)">Амулеты из амулетов.</button>
+    </div>
+    <!-- КАЛЬКУЛЯТОР 1 -->
+    <div id="calc1" class="tab-content active">
+        <div class="section-title">🔨 Делаю из этих колец:</div>
+        <div class="row-group">
+            <div class="custom-select-container" id="c1-src-container">
+                <div class="select-trigger" onclick="toggleDropdown('c1-src-container')">Ничего не выбрано</div>
+                <div class="select-options-dropdown">
+                    <div class="custom-option color-none" data-value="-1">Ничего не выбрано</div>
+                    <div class="custom-option color-orange" data-value="0">Скромное кольцо ★★</div>
+                    <div class="custom-option color-orange" data-value="1">Стильное кольцо ★★★</div>
+                    <div class="custom-option color-grey" data-value="2">Элегантное кольцо ★</div>
+                    <div class="custom-option color-grey" data-value="3">Утончённое кольцо ★★</div>
+                    <div class="custom-option color-grey" data-value="4">Впечатляющее кольцо ★★★</div>
+                    <div class="custom-option color-yellow" data-value="5">Роскошное кольцо ★</div>
+                    <div class="custom-option color-yellow" data-value="6">Великолепное кольцо ★★</div>
+                    <div class="custom-option color-yellow" data-value="7">Легендарное кольцо ★★★</div>
+                    <div class="custom-option color-purple" data-value="8">Мифическое кольцо ★</div>
+                </div>
+            </div>
+        </div>
+        <div class="row-group">
+            <div class="input-wrapper">
+                <div class="section-title">🎯 Хочу получить этот амулет:</div>
+                <div class="custom-select-container" id="c1-tgt-container">
+                    <div class="select-trigger" onclick="toggleDropdown('c1-tgt-container')">Ничего не выбрано</div>
+                    <div class="select-options-dropdown">
+                        <div class="custom-option color-none" data-value="-1">Ничего не выбрано</div>
+                        <div class="custom-option color-orange" data-value="0">Тайный амулет ★★</div>
+                        <div class="custom-option color-orange" data-value="1">Магический амулет ★★★</div>
+                        <div class="custom-option color-grey" data-value="2">Затерянный амулет ★</div>
+                        <div class="custom-option color-grey" data-value="3">Мистический амулет ★★</div>
+                        <div class="custom-option color-grey" data-value="4">Могущественный амулет ★★★</div>
+                        <div class="custom-option color-yellow" data-value="5">Священный амулет ★</div>
+                        <div class="custom-option color-yellow" data-value="6">Древний амулет ★★</div>
+                        <div class="custom-option color-yellow" data-value="7">Легендарный амулет ★★★</div>
+                        <div class="custom-option color-purple" data-value="8">Мифический амулет ★</div>
+                    </div>
+                </div>
+            </div>
+            <div class="amount-wrapper">
+                <div class="section-title">📦 Кол-во:</div>
+                <input type="number" id="c1-amt" value="1" min="1" oninput="calc1();">
+            </div>
+        </div>
+        <div class="info-card">
+            <div class="info-title">Мне нужно будет ещё колец:</div>
+            <div id="c1-res" class="info-value">0 шт.</div><div id="c1-res-name" class="info-sub">(Не выбрано)</div>
+        </div>
+        <div class="info-card">
+            <div class="info-title">Цена за 1 шт. выбранного кольца в ломе III тира:</div>
+            <div id="c1-mat-s" class="info-value" style="color: var(--c-or);">0 шт.</div>
+        </div>
+        <div class="info-card">
+            <div class="info-title">На весь крафт понадобится лома III тира:</div>
+            <div id="c1-mat-t" class="info-value materials-total">0 шт.</div>
+        </div>
+    </div>
+
+    <!-- КАЛЬКУЛЯТОР 2 -->
+    <div id="calc2" class="tab-content">
+        <div class="section-title">🔨 Делаю из этих амулетов:</div>
+        <div class="row-group">
+            <div class="custom-select-container" id="c2-src-container">
+                <div class="select-trigger" onclick="toggleDropdown('c2-src-container')">Ничего не выбрано</div>
+                <div class="select-options-dropdown">
+                    <div class="custom-option color-none" data-value="-1">Ничего не выбрано</div>
+                    <div class="custom-option color-orange" data-value="0">Тайный амулет ★★</div>
+                    <div class="custom-option color-orange" data-value="1">Магический амулет ★★★</div>
+                    <div class="custom-option color-grey" data-value="2">Затерянный амулет ★</div>
+                    <div class="custom-option color-grey" data-value="3">Мистический амулет ★★</div>
+                    <div class="custom-option color-grey" data-value="4">Могущественный амулет ★★★</div>
+                    <div class="custom-option color-yellow" data-value="5">Священный амулет ★</div>
+                    <div class="custom-option color-yellow" data-value="6">Древний амулет ★★</div>
+                    <div class="custom-option color-yellow" data-value="7">Легендарный амулет ★★★</div>
+                </div>
+            </div>
+        </div>
+        <div class="row-group">
+            <div class="input-wrapper">
+                <div class="section-title">🎯 Хочу получить этот амулет:</div>
+                <div class="custom-select-container" id="c2-tgt-container">
+                    <div class="select-trigger" onclick="toggleDropdown('c2-tgt-container')">Ничего не выбрано</div>
+                    <div class="select-options-dropdown">
+                        <div class="custom-option color-none" data-value="-1">Ничего не выбрано</div>
+                        <div class="custom-option color-orange" data-value="0">Тайный амулет ★★</div>
+                        <div class="custom-option color-orange" data-value="1">Магический амулет ★★★</div>
+                        <div class="custom-option color-grey" data-value="2">Затерянный амулет ★</div>
+                        <div class="custom-option color-grey" data-value="3">Мистический амулет ★★</div>
+                        <div class="custom-option color-grey" data-value="4">Могущественный амулет ★★★</div>
+                        <div class="custom-option color-yellow" data-value="5">Священный амулет ★</div>
+                        <div class="custom-option color-yellow" data-value="6">Древний амулет ★★</div>
+                        <div class="custom-option color-yellow" data-value="7">Легендарный амулет ★★★</div>
+                        <div class="custom-option color-purple" data-value="8">Мифический амулет ★</div>
+                    </div>
+                </div>
+            </div>
+            <div class="amount-wrapper">
+                <div class="section-title">📦 Кол-во:</div>
+                <input type="number" id="c2-amt" value="1" min="1" oninput="calc2();">
+            </div>
+        </div>
+        <div class="info-card">
+            <div class="info-title">Мне нужно будет ещё амулетов:</div>
+            <div id="c2-res" class="info-value">0 шт.</div><div id="c2-res-name" class="info-sub">(Не выбрано)</div>
+        </div>
+        <div class="info-card">
+            <div class="info-title">Цена за 1 шт. исходного амулета в ломе III тира:</div>
+            <div id="c2-mat-s" class="info-value" style="color: var(--c-or);">0 шт.</div>
+        </div>
+        <div class="info-card">
+            <div class="info-title">На весь крафт понадобится лома III тира:</div>
+            <div id="c2-mat-t" class="info-value materials-total">0 шт.</div>
+        </div>
+    </div>
+    <div class="footer">Создано кланом: <span class="footer-highlight">Ultima Thule</span> © 2026г.<br>Для проекта: <span class="footer-project">Dead Impact 🧟</span></div>
+</div>
+<script>
+    // Хранилище текущих выбранных значений (-1 по умолчанию)
+    const selectValues = { 'c1-src-container': -1, 'c1-tgt-container': -1, 'c2-src-container': -1, 'c2-tgt-container': -1 };
+
+    function switchTab(idx) {
+        document.getElementById('btn1').classList.toggle('active', idx === 1);
+        document.getElementById('btn2').classList.toggle('active', idx === 2);
+        document.getElementById('calc1').classList.toggle('active', idx === 1);
+        document.getElementById('calc2').classList.toggle('active', idx === 2);
+        closeAllDropdowns();
+    }
+
+    function toggleDropdown(containerId) {
+        const container = document.getElementById(containerId);
+        const isOpen = container.classList.contains('open');
+        closeAllDropdowns();
+        if (!isOpen) { container.classList.add('open'); }
+    }
+
+    function closeAllDropdowns() {
+        document.querySelectorAll('.custom-select-container').forEach(el => el.classList.remove('open'));
+    }
+
+    // Закрытие меню при клике по экрану вне выпадающего списка
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.custom-select-container')) { closeAllDropdowns(); }
+    }, true);
+
+    function initCustomSelects() {
+        document.querySelectorAll('.custom-select-container').forEach(container => {
+            const trigger = container.querySelector('.select-trigger');
+            container.querySelectorAll('.custom-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const val = parseInt(this.getAttribute('data-value'));
+                    const txt = this.innerText;
+                    const className = this.className;
+                    
+                    selectValues[container.id] = val;
+                    trigger.innerText = txt;
+                    
+                    // Сброс цвета триггера и установка нового
+                    trigger.className = 'select-trigger';
+                    let colorClass = 'color-none';
+                    if (className.includes('color-orange')) colorClass = 'color-orange';
+                    if (className.includes('color-grey')) colorClass = 'color-grey';
+                    if (className.includes('color-yellow')) colorClass = 'color-yellow';
+                    if (className.includes('color-purple')) colorClass = 'color-purple';
+                    trigger.classList.add(colorClass);
+                    
+                    // Изменение цвета рамки плашки
+                    let c = '#462568';
+                    if (colorClass === 'color-orange') c = '#ff9100';
+                    if (colorClass === 'color-grey') c = '#b0bec5';
+                    if (colorClass === 'color-yellow') c = '#ffd600';
+                    if (colorClass === 'color-purple') c = '#e040fb';
+                    trigger.style.borderColor = c;
+                    trigger.style.boxShadow = `0 0 10px ${c}55`;
+                    
+                    closeAllDropdowns();
+                    if (container.id.includes('c1')) { calc1(); } else { calc2(); }
+                });
+            });
+        });
+    }
+
+    function fmt(n) { return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+
+    function calc1() {
+        const src = selectValues['c1-src-container'], tgt = selectValues['c1-tgt-container'];
+        const amt = parseInt(document.getElementById('c1-amt').value) || 0;
+        const res = document.getElementById('c1-res'), sMat = document.getElementById('c1-mat-s'), tMat = document.getElementById('c1-mat-t'), sub = document.getElementById('c1-res-name');
+        
+        if (src === -1) {
+            sub.innerText = "(Не выбрано)"; res.innerText = "Выберите исходное кольцо!"; res.classList.add('error');
+            sMat.innerText = "0 шт."; tMat.innerText = "0 шт."; return;
+        }
+        
+        const triggerSrc = document.getElementById('c1-src-container').querySelector('.select-trigger');
+        sub.innerText = `(${triggerSrc.innerText})`;
+        
+        const sVal = 10 * Math.pow(3, src); sMat.innerText = fmt(sVal) + " шт.";
+        
+        if (tgt === -1) {
+            res.innerText = "Выберите желаемый амулет!"; res.classList.add('error');
+            tMat.innerText = "0 шт."; return;
+        }
+        
+        if (src > tgt) { res.innerText = "Будь внимательнее! Исходное кольцо выше рангом, чем желаемый амулет!"; res.classList.add('error'); tMat.innerText = "0 шт."; return; }
+        res.classList.remove('error');
+        
+        const finalItems = 5 * Math.pow(3, tgt - src) * amt;
+        res.innerText = fmt(finalItems) + " шт."; tMat.innerText = fmt(finalItems * sVal) + " шт.";
+    }
+
+    function calc2() {
+        const src = selectValues['c2-src-container'], tgt = selectValues['c2-tgt-container'];
+        const amt = parseInt(document.getElementById('c2-amt').value) || 0;
+        const res = document.getElementById('c2-res'), sMat = document.getElementById('c2-mat-s'), tMat = document.getElementById('c2-mat-t'), sub = document.getElementById('c2-res-name');
+        
+        if (src === -1) {
+            sub.innerText = "(Не выбрано)"; res.innerText = "Выберите исходный амулет!"; res.classList.add('error');
+            sMat.innerText = "0 шт."; tMat.innerText = "0 шт."; return;
+        }
+        
+        const triggerSrc = document.getElementById('c2-src-container').querySelector('.select-trigger');
+        sub.innerText = `(${triggerSrc.innerText})`;
+        
+        const sVal = 50 * Math.pow(3, src); sMat.innerText = fmt(sVal) + " шт.";
+        
+        if (tgt === -1) {
+            res.innerText = "Выберите желаемый амулет!"; res.classList.add('error');
+            tMat.innerText = "0 шт."; return;
+        }
+        
+        if (src >= tgt) { res.innerText = "Будь внимательнее! Исходный амулет выше рангом, чем желаемый амулет или имеет такой же ранг, как желаемый амулет!"; res.classList.add('error'); tMat.innerText = "0 шт."; return; }
+        res.classList.remove('error');
+        
+        const finalItems = Math.pow(3, tgt - src) * amt;
+        res.innerText = fmt(finalItems) + " шт."; tMat.innerText = fmt(finalItems * sVal) + " шт.";
+    }
+
+    window.onload = function() {
+        initCustomSelects();
+        calc1(); calc2();
+    };
+</script>
+</body>
+</html>
